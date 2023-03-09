@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import relationship
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -9,9 +10,22 @@ db = SQLAlchemy(app)
 
 class KG (db.Model):
     __tablename__ = 'kg'
+    # ограничение первичного ключа
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(32))
-    town = db.Column(db.String(32))
+    # ограничение на пустое значение
+    name = db.Column(db.String(32), nullable=False)
+    # ограничение CHECK
+    town = db.Column(db.String(32), db.CheckConstraint('town is not NULL'))
+    group = relationship('Group')
+
+
+class Group(db.Model):
+    __tablename__ = 'group'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), unique=True)
+    # ограничение вторичного ключа
+    kg_id = db.Column(db.Integer, db.ForeignKey('kg.id'))
+    kg = relationship('KG')
 
 
 # удалить все таблицы
@@ -28,10 +42,16 @@ kg112 = KG(name='112', town='KLD')
 kg113 = KG(name='113', town='Svetliy')
 kg114 = KG(name='114', town='Baltiysk')
 
+kg115 = KG(name='115', town='KLD')
+group_small = Group(name='младшая', kg=kg115)
+
+
 with app.app_context():
     # первый способ добавления записей
     db.session.add(kg111)
     db.session.add(kg112)
+    db.session.add(kg115)
+    db.session.add(group_small)
     # второй способ добавления записей
     kgs = [kg113, kg114]
     db.session.add_all(kgs)
